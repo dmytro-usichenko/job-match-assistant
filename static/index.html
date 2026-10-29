@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Match Assistant</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    h1 { margin-bottom: 0.2rem; }
+    .sub { color: #666; margin-top: 0; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 280px; }
+    textarea { width: 100%; height: 220px; padding: 0.6rem; box-sizing: border-box; font: inherit; }
+    button { margin-top: 1rem; padding: 0.7rem 1.4rem; font-size: 1rem; cursor: pointer; background: #0a66c2; color: #fff; border: 0; border-radius: 6px; }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    #result { margin-top: 1.5rem; display: none; }
+    .score { font-size: 2.5rem; font-weight: bold; }
+    .tag { display: inline-block; padding: 0.2rem 0.6rem; margin: 0.15rem; border-radius: 12px; font-size: 0.9rem; }
+    .ok { background: #d9f2e0; }
+    .miss { background: #fde0e0; }
+  </style>
+</head>
+<body>
+  <h1>Job Match Assistant</h1>
+  <p class="sub">Paste your CV and a job posting to see how well they match.</p>
+
+  <div class="row">
+    <div class="col">
+      <label for="resume"><b>Your CV</b></label>
+      <textarea id="resume"></textarea>
+    </div>
+    <div class="col">
+      <label for="job"><b>Job posting</b></label>
+      <textarea id="job"></textarea>
+    </div>
+  </div>
+
+  <button id="go">Check match</button>
+
+  <div id="result">
+    <div class="score"><span id="score"></span>%</div>
+    <p><b>Matched skills</b><br><span id="matched"></span></p>
+    <p><b>Missing skills</b><br><span id="missing"></span></p>
+  </div>
+
+  <script>
+    const tags = (list, cls) =>
+      list.length ? list.map(s => `<span class="tag ${cls}">${s}</span>`).join("") : "<i>none</i>";
+
+    document.getElementById("go").addEventListener("click", async () => {
+      const btn = document.getElementById("go");
+      btn.disabled = true;
+      btn.textContent = "Checking...";
+      try {
+        const res = await fetch("/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resume: document.getElementById("resume").value,
+            job: document.getElementById("job").value,
+          }),
+        });
+        const data = await res.json();
+        document.getElementById("score").textContent = data.match_score;
+        document.getElementById("matched").innerHTML = tags(data.matched_skills, "ok");
+        document.getElementById("missing").innerHTML = tags(data.missing_skills, "miss");
+        document.getElementById("result").style.display = "block";
+      } catch (e) {
+        alert("Something went wrong. Is the server running?");
+      }
+      btn.disabled = false;
+      btn.textContent = "Check match";
+    });
+  </script>
+</body>
+</html>
